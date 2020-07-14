@@ -89,32 +89,6 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.admin_session},
                                             json=post_response).status_code, 200)
 
-    def test_update_appointment(self):
-        post_response = create_appointment({'JSESSIONID': self.user_session}).json()
-
-        self.assertTrue(post_response['creatorName'], 'test')
-        self.assertEqual(post_response['comment'], 'test')
-
-        update_json = deepcopy(post_response)
-        update_json['comment'] = 'test2'
-        id_to_update = update_json['options'][0]['id']
-        update_json['options'][0]['comment'] = '3'
-        id_to_delete = update_json['options'][1]['id']
-        update_json['options'][1]['id'] = None
-
-        update_response = update_appointment(post_response['id'], cookies={'JSESSIONID': self.user_session},
-                                             json=update_json).json()
-
-        self.assertEqual(post_response['id'], update_response['id'])
-        self.assertNotEqual(post_response['comment'], update_response['comment'])
-        self.assertEqual(update_response['comment'], 'test2')
-        self.assertEqual(len(update_response['options']), len(post_response['options']))
-        self.assertFalse(id_to_delete in [option['id'] for option in update_response['options']])
-
-        for option in update_response['options']:
-            if option['id'] == id_to_update:
-                self.assertEqual(option['comment'], '3')
-
     def test_vote(self):
         post_response = create_appointment({'JSESSIONID': self.user_session}).json()
         option_id = post_response['options'][0]['id']
