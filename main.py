@@ -58,34 +58,43 @@ class MyTestCase(unittest.TestCase):
             if option['id'] == id_to_update:
                 self.assertEqual(option['comment'], '3')
 
+    def test_move_option_to_other_appointment(self):
+        first = create_appointment({'JSESSIONID': self.user_session}).json()
+        second = create_appointment({'JSESSIONID': self.user_session}).json()
+
+        first['options'][0]['id'] = second['options'][0]['id']
+        self.assertEqual(update_appointment(first['id'], cookies={'JSESSIONID': self.user_session},
+                                             json=first).status_code, 400)
+
+
     def test_update_rights(self):
         post_response = create_appointment({'JSESSIONID': self.user_session}).json()
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.user_session},
                                             json=post_response).status_code, 200)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.another_user_session},
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies=None,
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.admin_session},
                                             json=post_response).status_code, 200)
 
         post_response = create_appointment().json()
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.user_session},
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.another_user_session},
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies=None,
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.admin_session},
                                             json=post_response).status_code, 200)
 
         post_response = create_appointment({'JSESSIONID': self.admin_session}).json()
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.user_session},
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.another_user_session},
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies=None,
-                                            json=post_response).status_code, 500)
+                                            json=post_response).status_code, 400)
         self.assertEqual(update_appointment(post_response['id'], cookies={'JSESSIONID': self.admin_session},
                                             json=post_response).status_code, 200)
 
@@ -109,19 +118,19 @@ class MyTestCase(unittest.TestCase):
                 self.assertTrue(admin_vote_id in [vote['id'] for vote in option['votes']])
 
         self.assertEqual(delete_vote(anon_vote_id).status_code, 403)
-        self.assertEqual(delete_vote(anon_vote_id, {'JSESSIONID': self.user_session}).status_code, 500)
+        self.assertEqual(delete_vote(anon_vote_id, {'JSESSIONID': self.user_session}).status_code, 400)
         self.assertEqual(delete_vote(anon_vote_id, {'JSESSIONID': self.admin_session}).status_code, 200)
 
         self.assertEqual(delete_vote(user_vote_id).status_code, 403)
         self.assertEqual(delete_vote(user_vote_id, {'JSESSIONID': self.user_session}).status_code, 200)
 
         self.assertEqual(delete_vote(another_user_vote_id).status_code, 403)
-        self.assertEqual(delete_vote(another_user_vote_id, {'JSESSIONID': self.user_session}).status_code, 500)
+        self.assertEqual(delete_vote(another_user_vote_id, {'JSESSIONID': self.user_session}).status_code, 400)
         self.assertEqual(delete_vote(another_user_vote_id, {'JSESSIONID': self.admin_session}).status_code, 200)
 
         self.assertEqual(delete_vote(admin_vote_id).status_code, 403)
-        self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.user_session}).status_code, 500)
-        self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.another_user_session}).status_code, 500)
+        self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.user_session}).status_code, 400)
+        self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.another_user_session}).status_code, 400)
         self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.admin_session}).status_code, 200)
 
     def test_get_notifications(self):
