@@ -1,12 +1,16 @@
 import unittest
 from copy import deepcopy
+import requests
 
 from dateutil import parser
 from time import sleep
 
+from requests import post
+
 from util import create_appointment, update_appointment, get_appointment, get_user_session_id, get_admin_session_id, \
     get_another_user_session_id, vote_for_option, delete_vote, get_notifications, mark_delivered, \
-    mark_delivered_current_notifications, create_notifications
+    mark_delivered_current_notifications, create_notifications, get_jwt_token, add_client_user, vote_from_client, \
+    get_notifications_from_client, mark_delivered_current_client_notifications
 
 
 class MyTestCase(unittest.TestCase):
@@ -15,6 +19,8 @@ class MyTestCase(unittest.TestCase):
         self.user_session = get_user_session_id()
         self.another_user_session = get_another_user_session_id()
         self.admin_session = get_admin_session_id()
+        self.token = {'Authorization': 'Bearer ' + get_jwt_token()}
+
 
     def test_create_and_get_appointment(self):
         post_response = create_appointment().json()
@@ -64,8 +70,7 @@ class MyTestCase(unittest.TestCase):
 
         first['options'][0]['id'] = second['options'][0]['id']
         self.assertEqual(update_appointment(first['id'], cookies={'JSESSIONID': self.user_session},
-                                             json=first).status_code, 400)
-
+                                            json=first).status_code, 400)
 
     def test_update_rights(self):
         post_response = create_appointment({'JSESSIONID': self.user_session}).json()
@@ -139,6 +144,7 @@ class MyTestCase(unittest.TestCase):
         mark_delivered_current_notifications({'JSESSIONID': self.user_session})
         mark_delivered_current_notifications({'JSESSIONID': self.another_user_session})
         mark_delivered_current_notifications({'JSESSIONID': self.admin_session})
+        mark_delivered_current_client_notifications(self.token)
 
         post_response = create_appointment({'JSESSIONID': self.user_session}).json()
         option_id = post_response['options'][0]['id']
@@ -147,13 +153,18 @@ class MyTestCase(unittest.TestCase):
         vote_for_option(json=vote_json, cookies={'JSESSIONID': self.another_user_session})
         vote_for_option(json=vote_json, cookies={'JSESSIONID': self.admin_session})
 
+        client_vote_json = {'comment': 'test', 'optionId': option_id, 'type': 'AGREE', 'clientId': 1}
+        vote_from_client(client_vote_json, self.token)
+
         user_notifications_response = get_notifications({'JSESSIONID': self.user_session}).json()
         another_user_notifications_response = get_notifications({'JSESSIONID': self.another_user_session}).json()
         admin_notification_response = get_notifications({'JSESSIONID': self.admin_session}).json()
+        get_notifications_from_client_response = get_notifications_from_client(self.token).json()
 
         self.assertEqual(len(user_notifications_response), 0)
         self.assertEqual(len(another_user_notifications_response), 0)
         self.assertEqual(len(admin_notification_response), 0)
+        self.assertEqual(len(get_notifications_from_client_response), 0)
 
         sleep(15)
         create_notifications()
@@ -161,10 +172,16 @@ class MyTestCase(unittest.TestCase):
         user_notifications_response = get_notifications({'JSESSIONID': self.user_session}).json()
         another_user_notifications_response = get_notifications({'JSESSIONID': self.another_user_session}).json()
         admin_notification_response = get_notifications({'JSESSIONID': self.admin_session}).json()
+        get_notifications_from_client_response = get_notifications_from_client(self.token).json()
 
         self.assertEqual(len(user_notifications_response), 2)
         self.assertEqual(len(another_user_notifications_response), 1)
         self.assertEqual(len(admin_notification_response), 1)
+        self.assertEqual(len(get_notifications_from_client_response), 1)
+
+    def test_add_client_user(self):
+        code = add_client_user(self.token).status_code
+        self.assertEqual(code, 200)
 
 
 if __name__ == '__main__':
