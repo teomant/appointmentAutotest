@@ -10,7 +10,7 @@ from requests import post
 from util import create_appointment, update_appointment, get_appointment, get_user_session_id, get_admin_session_id, \
     get_another_user_session_id, vote_for_option, delete_vote, get_notifications, mark_delivered, \
     mark_delivered_current_notifications, create_notifications, get_jwt_token, add_client_user, vote_from_client, \
-    get_notifications_from_client, mark_delivered_current_client_notifications
+    get_notifications_from_client, mark_delivered_current_client_notifications, delete_vote_from_client
 
 
 class MyTestCase(unittest.TestCase):
@@ -113,6 +113,9 @@ class MyTestCase(unittest.TestCase):
             vote_for_option(json=vote_json, cookies={'JSESSIONID': self.another_user_session}).json()['id']
         admin_vote_id = vote_for_option(json=vote_json, cookies={'JSESSIONID': self.admin_session}).json()['id']
 
+        client_vote_json = {'comment': 'test', 'optionId': option_id, 'type': 'AGREE', 'clientId': 1}
+        client_vote_id = vote_from_client(client_vote_json, self.token).json()['id']
+
         result = get_appointment(post_response['id']).json()
         self.assertTrue(option_id in [option['id'] for option in result['options']])
         for option in result['options']:
@@ -137,6 +140,10 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.user_session}).status_code, 400)
         self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.another_user_session}).status_code, 400)
         self.assertEqual(delete_vote(admin_vote_id, {'JSESSIONID': self.admin_session}).status_code, 200)
+
+        anon_vote_id_2 = vote_for_option(json=vote_json).json()['id']
+        self.assertEqual(delete_vote_from_client(self.token, client_vote_id, 1).status_code, 200)
+        self.assertEqual(delete_vote_from_client(self.token, anon_vote_id_2, 1).status_code, 400)
 
     def test_get_notifications(self):
         # sleep(15)

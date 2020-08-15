@@ -100,7 +100,11 @@ def add_client_user(token):
 
 
 def vote_from_client(client_vote_json, token):
-    post('http://localhost:8080/api/vote', json=client_vote_json, headers=token)
+    return post('http://localhost:8080/api/vote', json=client_vote_json, headers=token)
+
+
+def delete_vote_from_client(token, id, user_id):
+    return post(f'http://localhost:8080/api/deleteVote/{id}?userId={user_id}', headers=token)
 
 
 def get_notifications_from_client(token=None, user_id=1):
